@@ -2,7 +2,7 @@
 This is a collection of some python code for processing SPED data, mainly using [pyxem].
 
 ## Pyxem template matching
-The [pyxem template matching notebook](PyXem template matching.ipynb) is the most complete code. It shows an example of running template matching on a GaAs nanowire SPED dataset and should hopefully be easy to follow. Feedback on the implementation is welcome.
+The [pyxem template matching notebook](pyxem_template_matching.ipynb) is the most complete code. It shows an example of running template matching on a GaAs nanowire SPED dataset and should hopefully be easy to follow. Feedback on the implementation is welcome.
 
 ## Preprocessing
 The [preprocessing notebook](Preprocessing.ipynb) contains some code for testing different parameters for background removal.
