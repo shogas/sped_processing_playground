@@ -27,6 +27,9 @@ half_pattern_size = target_pattern_dimension_pixels // 2
 simulated_gaussian_sigma = 0.02
 reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
 
+# For local rotation list
+max_theta = 45
+resolution = 10
 
 
 def structure_manual():
@@ -199,8 +202,6 @@ def update_rotation(rotation_matrices):
     rotation_scatter._offsets3d = v.T
 
 
-max_theta = 45
-resolution = 10
 def update_pattern(_ = None):
     reciprocal_angstrom_per_pixel = slider_scale.val
     simulated_gaussian_sigma = slider_sigma.val
