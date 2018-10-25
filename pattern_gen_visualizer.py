@@ -160,28 +160,17 @@ def transformation_matrix_to_cartesian(structure):
     cos_gamma = math.cos(gamma)
     sin_gamma = math.sin(gamma)
 
-    transform_e1 = np.array([
-        a,
-        0,
-        0])
-    transform_e2 = np.array([
-        b*cos_gamma,
-        b*sin_gamma,
-        0])
 
     factor_e3_0 = cos_beta
     factor_e3_1 = (cos_alpha - cos_beta*cos_gamma)/sin_gamma
-    factor_e3_2 = math.sqrt(1 - factor_e3_0**2 - factor_e3_1**2)
-    transform_e3 = np.array([
-        c*factor_e3_0,
-        c*factor_e3_1,
-        c*factor_e3_2])
+    factor_e3_2 = math.sqrt(1 - np.dot(factor_e3_0, factor_e3_0) - np.dot(factor_e3_1, factor_e3_1))
 
-    # Transpose from np.array matrix of row vectors to matrix of column vectors
+    # Columns are the transformations of the corresponding cartesian basis vector.
     return np.array([
-        transform_e1,
-        transform_e2,
-        transform_e3]).T
+        [a, b*cos_gamma, c*factor_e3_0],
+        [0, b*sin_gamma, c*factor_e3_1],
+        [0, 0,           c*factor_e3_2]
+    ])
 
 
 def direction_to_cartesian(structure_from, direction_from):
@@ -436,7 +425,6 @@ def uvtw_to_uvw(u, v, t, w):
 
 def plot_lib_2d(library, size, scale, sigma, max_r, phase_name, rotation_list):
     patterns = np.empty((rotation_list.shape[0], rotation_list.shape[1], size, size))
-    print(rotation_list.shape)
 
     for i in range(rotation_list.shape[0]):
         for j in range(rotation_list.shape[1]):
