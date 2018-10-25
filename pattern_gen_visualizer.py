@@ -33,8 +33,8 @@ simulated_gaussian_sigma = 0.02
 reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
 
 # For local rotation list
-max_theta = 45
-resolution = 10
+max_theta = np.deg2rad(10)
+resolution = np.deg2rad(10)
 
 
 def structure_manual():
@@ -109,20 +109,8 @@ def angle_between_directions(structure,
     return math.acos(L/(I1*I2))
 
 
-def plot_3d_axes(ax):
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    axis_a = ax.plot([0, 1], [0, 0], [0, 0], c=(1, 0, 0))
-    axis_b = ax.plot([0, 0], [0, 1], [0, 0], c=(0, 1, 0))
-    axis_c = ax.plot([0, 0], [0, 0], [0, 1], c=(0, 0, 1))
-
-    rot_count = generate_rotation_list(structures[current_structure], 0, 0, 0, max_theta, resolution).shape[0]
-    return axis_a, axis_b, axis_c, ax.scatter([0]*rot_count, [0]*rot_count, [0]*rot_count)
-
-
 # TODO: Look at https://www.ctcms.nist.gov/%7Elanger/oof2man/RegisteredClass-Bunge.html
-def generate_rotation_list(structure, phi, theta, psi, max_theta, resolution):
+def generate_rotation_list_directed(structure, phi, theta, psi, max_theta, resolution):
     # TODO: Symmetry considerations
 
     zone_to_rotation = np.identity(3)
@@ -130,8 +118,8 @@ def generate_rotation_list(structure, phi, theta, psi, max_theta, resolution):
     lattice_to_zone = euler2mat(phi, -theta, psi, 'rzxz')
 
     # This generates rotations around the given axis, with a denser sampling close to the axis
-    max_theta = np.deg2rad(max_theta)
-    resolution = np.deg2rad(resolution)
+    max_theta = max_theta
+    resolution = resolution
     min_psi = -np.pi
     max_psi = np.pi
     theta_count = math.ceil(max_theta / resolution)
@@ -144,6 +132,50 @@ def generate_rotation_list(structure, phi, theta, psi, max_theta, resolution):
             rotations[i, j] = lattice_to_rotation
 
     return rotations.reshape(-1, 3, 3)
+
+
+def generate_fibonacci_spiral(structure, phi, theta, psi, max_theta, _):
+    # Vogel's method -> disk. Modify -> sphere surface
+    zone_to_rotation = np.identity(3)
+    lattice_to_zone = np.identity(3)
+
+    lattice_to_zone = euler2mat(phi, -theta, psi, 'rzxz')
+
+    n = 100
+    golden_angle = np.pi * (3 - np.sqrt(5))
+    theta = golden_angle * np.arange(n)
+    z = np.linspace(1, np.cos(max_theta), n)
+
+    radius = np.sqrt(1 - z**2)
+
+    points = np.zeros((n, 3))
+    points[:, 0] = radius * np.cos(theta)
+    points[:, 1] = radius * np.sin(theta)
+    points[:, 2] = z
+
+    rotations = np.empty((n, 3, 3))
+    for i, point in enumerate(points):
+        # Simplifications to cos angle formula since one of the directions is (0, 0, 1)
+        point_angle = math.acos(point[2]/np.linalg.norm(point))
+        point_axis = np.cross(np.array([0, 0, 1]), point)
+        if np.count_nonzero(point_axis) == 0:
+            point_axis = np.array([0, 0, 1])
+        zone_to_rotation = axangle2mat(point_axis, point_angle)
+        rotations[i] = lattice_to_zone @ zone_to_rotation
+
+    return rotations.reshape(-1, 3, 3)
+
+
+def plot_3d_axes(ax):
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    axis_a = ax.plot([0, 1], [0, 0], [0, 0], c=(1, 0, 0))
+    axis_b = ax.plot([0, 0], [0, 1], [0, 0], c=(0, 1, 0))
+    axis_c = ax.plot([0, 0], [0, 0], [0, 1], c=(0, 0, 1))
+
+    rot_count = generate_rotation_list(structures[current_structure], 0, 0, 0, max_theta, resolution).shape[0]
+    return axis_a, axis_b, axis_c, ax.scatter([0]*rot_count, [0]*rot_count, [0]*rot_count)
 
 
 def transformation_matrix_to_cartesian(structure):
@@ -231,9 +263,9 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
 
     # Input validation. The corners have to define a non-degenerate triangle
     if np.count_nonzero(axis_a_to_b) == 0:
-        raise ValueError("Directions a and b are parallel")
+        raise ValueError('Directions a and b are parallel')
     if np.count_nonzero(axis_a_to_c) == 0:
-        raise ValueError("Directions a and c are parallel")
+        raise ValueError('Directions a and c are parallel')
 
     # Find the maxiumum number of points we can generate, given by the
     # resolution, then allocate storage for them. For the theta direction,
@@ -494,6 +526,9 @@ def update_rotation_list(_ = None):
 
 
 gen = pxm.DiffractionGenerator(beam_energy_keV, max_excitation_error=1/specimen_thickness)
+
+# Choose local rotation list method
+generate_rotation_list = generate_fibonacci_spiral
 
 fig = plt.figure()
 
