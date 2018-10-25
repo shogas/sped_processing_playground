@@ -198,7 +198,7 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
             of the diffraction pattern. This corresponds to the third Euler
             angle rotation. The rotation list will be generated for each of
             these angles, and combined. This should be done automatically, but
-            by including all possible psi rotations in the rotation list, it
+            by including all possible rotations in the rotation list, it
             becomes too large.
 
     Returns:
@@ -280,10 +280,11 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
             for k, psi in enumerate(inplane_rotations):
                 rotation_psi = axangle2mat((0, 0, 1), psi)
 
-                # Combine the rotations. Order is important. The structure is
-                # multiplied from the left in diffpy, and we want to rotate by
-                # theta first.
-                rotations[i, j, k] = rotation_phi @ (rotation_a_to_b @ rotation_psi)
+                # Combine the rotations. Order is important. The matrix is
+                # applied from the left, and we rotate by theta first toward
+                # local_b, then across the triangle toward local_c, and finally
+                # an inplane rotation psi
+                rotations[i, j, k] = rotation_psi @ (rotation_phi @ rotation_a_to_b)
 
     return rotations
 
@@ -308,7 +309,7 @@ def update_rotation(rotation_matrices):
     rotation_matrices = rotation_matrices.reshape(-1, 3, 3)
     v = np.empty((rotation_matrices.shape[0], 3))
     for i, rotation_matrix in enumerate(rotation_matrices):
-        v[i] = np.dot(rotation_matrix, np.array([0, 0, 1]))
+        v[i] = np.dot(rotation_matrix, np.array([0, 0, 1]).T)
     rotation_scatter._offsets3d = v.T
 
 
