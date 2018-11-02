@@ -66,7 +66,6 @@ structures = [
 current_structure = 0
 
 
-
 def angle_between_cartesian(a, b):
     return math.acos(np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b)))
 
@@ -219,22 +218,26 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
     """Generate a rotation list covering the inverse pole figure specified by three
         corners in cartesian coordinates.
 
-    Arguments:
-        structure: diffpy.structure.Structure, used for calculating angles
-        corner_a, corner_b, corner_c: The three corners of the inverse pole
-            figure given by three coordinates in the coordinate system
-            specified by the structure lattice (crystal directions).
-        resolution: Angular resolution in radians of the generated rotation
-            list.
-        inplane_rotations: List of angles in radians for in-plane rotation
-            of the diffraction pattern. This corresponds to the third Euler
-            angle rotation. The rotation list will be generated for each of
-            these angles, and combined. This should be done automatically, but
-            by including all possible rotations in the rotation list, it
-            becomes too large.
+    Parameters
+    ----------
+    structure : diffpy.structure.Structure
+        Structure for which to calculate the rotation list
+    corner_a, corner_b, corner_c : tuple
+        The three corners of the inverse pole figure, each given by three
+        coordinates. The coordinate system is given by the structure lattice.
+    resolution : float
+        Angular resolution in radians of the generated rotation list.
+    inplane_rotations : list
+        List of angles in radians for in-plane rotation of the diffraction
+        pattern. This corresponds to the third Euler angle rotation. The
+        rotation list will be generated for each of these angles, and combined.
+        This should be done automatically, but by including all possible
+        rotations in the rotation list, it becomes too large.
 
-    Returns:
-        Rotations covering the inverse pole figure given as a `np.array` of Euler
+    Returns
+    -------
+    rotation_list : numpy.array
+        Rotations covering the inverse pole figure given as a of Euler
             angles in degress. This `np.array` can be passed directly to pyxem.
     """
 
