@@ -560,16 +560,16 @@ slider_sigma  = Slider(ax_sigma,  '$\\sigma$', 0.0, 0.05, valinit=simulated_gaus
 slider_energy = Slider(ax_energy, 'Energy',   100, 300,  valinit=beam_energy_keV,   valstep=10, valfmt="%1.0f")
 slider_thick  = Slider(ax_thick,  'Thick',    1,   100,  valinit=specimen_thickness,    valstep=1, valfmt="%1.0f")
 
-phi_start   = 315
-theta_start = 35.264+5
-psi_start   = 215
+phi_start   = 0.
+theta_start = 0.
+psi_start   = 0.
 slider_phi    = Slider(ax_phi,    '$\\phi$',    0.0, 360.0, valinit=phi_start,   valstep=0.1)
 slider_theta  = Slider(ax_theta,  '$\\theta$', 0.0, 360.0, valinit=theta_start, valstep=0.1)
 slider_psi    = Slider(ax_psi,    '$\\psi$',    0.0, 360.0, valinit=psi_start,   valstep=0.1)
 
-txt_h = TextBox(ax_h_txt, 'h', initial='1')
-txt_k = TextBox(ax_k_txt, 'k', initial='1')
-txt_l = TextBox(ax_l_txt, 'l', initial='2')
+txt_h = TextBox(ax_h_txt, 'h', initial='0')
+txt_k = TextBox(ax_k_txt, 'k', initial='0')
+txt_l = TextBox(ax_l_txt, 'l', initial='1')
 btn_hkl = Button(ax_hkl_b, 'Set')
 btn_zbwz = Button(ax_zbwz, structures[current_structure]['name'])
 btn_rot_list = Button(ax_rot_list, 'List')
