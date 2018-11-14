@@ -27,7 +27,6 @@ structure_wz_file = 'D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/
 beam_energy_keV = 200
 specimen_thickness = 80  # Ångström
 target_pattern_dimension_pixels = 144
-angstrom_per_pixel = 19.6
 half_pattern_size = target_pattern_dimension_pixels // 2
 simulated_gaussian_sigma = 0.02
 reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
