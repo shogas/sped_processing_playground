@@ -556,9 +556,9 @@ ax_zbwz     = plt.axes([0.80, 0.02, 0.04, 0.03])
 ax_rot_list = plt.axes([0.85, 0.02, 0.04, 0.03])
 
 slider_scale  = Slider(ax_scale,  'Scale',    0.0, 0.1,  valinit=reciprocal_angstrom_per_pixel, valstep=0.001, valfmt="%1.3f")
-slider_sigma  = Slider(ax_sigma,  '$\\sigma$', 0.0, 0.05, valinit=0.04,  valstep=0.001, valfmt="%1.3f")
-slider_energy = Slider(ax_energy, 'Energy',   100, 300,  valinit=200,   valstep=10, valfmt="%1.0f")
-slider_thick  = Slider(ax_thick,  'Thick',    1,   100,  valinit=80,    valstep=1, valfmt="%1.0f")
+slider_sigma  = Slider(ax_sigma,  '$\\sigma$', 0.0, 0.05, valinit=simulated_gaussian_sigma,  valstep=0.001, valfmt="%1.3f")
+slider_energy = Slider(ax_energy, 'Energy',   100, 300,  valinit=beam_energy_keV,   valstep=10, valfmt="%1.0f")
+slider_thick  = Slider(ax_thick,  'Thick',    1,   100,  valinit=specimen_thickness,    valstep=1, valfmt="%1.0f")
 
 phi_start   = 315
 theta_start = 35.264+5
