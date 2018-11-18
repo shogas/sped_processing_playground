@@ -410,14 +410,14 @@ def update_structure(_ = None):
     update_pattern()
 
 
-def update_hkl(_ = None):
-    h = int(txt_h.text)
-    k = int(txt_k.text)
-    l = int(txt_l.text)
+def update_uvw(_ = None):
+    u = int(txt_u.text)
+    v = int(txt_v.text)
+    w = int(txt_w.text)
 
     structure = structures[current_structure]['structure']
-    rotation_angle = angle_between_directions(structure, (0, 0, 1), (h, k, l))
-    direction = direction_to_cartesian(structure, (h, k, l))
+    rotation_angle = angle_between_directions(structure, (0, 0, 1), (u, v, w))
+    direction = direction_to_cartesian(structure, (u, v, w))
     direction /= np.linalg.norm(direction)
 
     axis = np.cross(np.array([0.0, 0.0, 1.0]), direction)
@@ -552,10 +552,10 @@ ax_phi      = plt.axes([0.6, 0.17, 0.3, 0.03])
 ax_theta    = plt.axes([0.6, 0.12, 0.3, 0.03])
 ax_psi      = plt.axes([0.6, 0.07, 0.3, 0.03])
 
-ax_h_txt    = plt.axes([0.60, 0.02, 0.04, 0.03])
-ax_k_txt    = plt.axes([0.65, 0.02, 0.04, 0.03])
-ax_l_txt    = plt.axes([0.70, 0.02, 0.04, 0.03])
-ax_hkl_b    = plt.axes([0.75, 0.02, 0.04, 0.03])
+ax_u_txt    = plt.axes([0.60, 0.02, 0.04, 0.03])
+ax_v_txt    = plt.axes([0.65, 0.02, 0.04, 0.03])
+ax_w_txt    = plt.axes([0.70, 0.02, 0.04, 0.03])
+ax_uvw_b    = plt.axes([0.75, 0.02, 0.04, 0.03])
 ax_zbwz     = plt.axes([0.80, 0.02, 0.04, 0.03])
 ax_rot_list = plt.axes([0.85, 0.02, 0.04, 0.03])
 
@@ -571,10 +571,10 @@ slider_phi    = Slider(ax_phi,    '$\\phi$',    0.0, 360.0, valinit=phi_start,  
 slider_theta  = Slider(ax_theta,  '$\\theta$', 0.0, 360.0, valinit=theta_start, valstep=0.1)
 slider_psi    = Slider(ax_psi,    '$\\psi$',    0.0, 360.0, valinit=psi_start,   valstep=0.1)
 
-txt_h = TextBox(ax_h_txt, 'h', initial='1')
-txt_k = TextBox(ax_k_txt, 'k', initial='1')
-txt_l = TextBox(ax_l_txt, 'l', initial='2')
-btn_hkl = Button(ax_hkl_b, 'Set')
+txt_u = TextBox(ax_u_txt, 'u', initial='1')
+txt_v = TextBox(ax_v_txt, 'v', initial='1')
+txt_w = TextBox(ax_w_txt, 'w', initial='2')
+btn_uvw = Button(ax_uvw_b, 'Set')
 btn_zbwz = Button(ax_zbwz, structures[current_structure]['name'])
 btn_rot_list = Button(ax_rot_list, 'List')
 
@@ -587,7 +587,7 @@ slider_phi.on_changed(update_pattern)
 slider_theta.on_changed(update_pattern)
 slider_psi.on_changed(update_pattern)
 
-btn_hkl.on_clicked(update_hkl)
+btn_uvw.on_clicked(update_uvw)
 btn_zbwz.on_clicked(update_structure)
 btn_rot_list.on_clicked(update_rotation_list)
 
