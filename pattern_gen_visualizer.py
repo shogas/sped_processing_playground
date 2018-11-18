@@ -451,6 +451,99 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
     return rotations
 
 
+def equispaced_s2_grid(theta_range, phi_range, resolution=0.05, no_center=False):
+    """Creates rotations approximately equispaced on a sphere.
+    Parameters
+    ----------
+    theta_range : tuple of float
+        (theta_min, theta_max)
+        The range of allowable polar angles.
+    phi_range : tuple of float
+        (phi_min, phi_max)
+        The range of allowable azimuthal angles.
+    resolution : float
+        The angular resolution of the grid.
+    no_center : bool
+        If true, `theta` values will not start at zero.
+    Returns
+    -------
+    s2_grid : array-like
+        Each row contains `(theta, phi)`, the azimthal and polar angle
+        respectively.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+    theta_min, theta_max = [t for t in theta_range]
+    phi_min, phi_max = [r for r in phi_range]
+    resolution = resolution
+    resolution = 2 * theta_max / int(Decimal(2 * theta_max / resolution).quantize(0, ROUND_HALF_UP))
+    n_theta = int(Decimal((2 * theta_max / resolution + no_center)).quantize(0, ROUND_HALF_UP) / 2)
+
+    if no_center:
+        theta_grid = np.arange(0.5, n_theta + 0.5) * resolution
+    else:
+        theta_grid = np.arange(n_theta + 1) * resolution
+
+    phi_grid = []
+    for j, theta in enumerate(theta_grid):
+        steps = max(round(math.sin(theta) * phi_max / theta_max * n_theta), 1)
+        phi = phi_min\
+            + np.arange(steps) * (phi_max - phi_min) / steps \
+            + ((j+1) % 2) * (phi_max - phi_min) / steps / 2
+        phi_grid.append(phi)
+    s2_grid = np.array(
+        [(theta, phi, 0) for phis, theta in zip(phi_grid, theta_grid) for phi in
+         phis])
+    return s2_grid
+
+
+def equispaced_so3_grid(alpha_max, beta_max, gamma_max, resolution=2.5,
+                        alpha_min=0, beta_min=0, gamma_min=0):
+    """Creates an approximately equispaced SO(3) grid.
+    Parameters
+    ----------
+    alpha_max : float
+    beta_max : float
+    gamma_max : float
+    resolution : float, optional
+    alpha_min : float, optional
+    beta_min : float, optional
+    gamma_min : float, optional
+    Returns
+    -------
+    so3_grid : array-like
+        Each row contains `(alpha, beta, gamma)`, the three Euler angles on the
+        SO(3) grid.
+    """
+
+    def no_center(res):
+        if round(2 * np.pi / res) % 2 == 0:
+            return True
+        else:
+            return False
+
+    s2_grid = equispaced_s2_grid(
+        (beta_min, beta_max),
+        (alpha_min, alpha_max),
+        resolution,
+        no_center=no_center(resolution)
+    )
+
+    gamma_max = gamma_max / 2
+
+    ap2 = int(np.round(2 * gamma_max / resolution))
+    beta, alpha = s2_grid[:, 0], s2_grid[:, 1]
+    real_part = np.cos(beta) * np.cos(alpha) + np.cos(alpha)
+    imaginary_part = -(np.cos(beta) + 1) * np.sin(alpha)
+    d_gamma = np.arctan2(imaginary_part, real_part)
+    d_gamma = np.tile(d_gamma, (ap2, 1))
+    gamma = -gamma_max + np.arange(ap2) * 2 * gamma_max / ap2
+    gamma = (d_gamma + np.tile(gamma.T, (len(s2_grid), 1)).T).flatten()
+    alpha = np.tile(alpha, (ap2, 1)).flatten()
+    beta = np.tile(beta, (ap2, 1)).flatten()
+    so3_grid = np.vstack((alpha, beta, gamma)).T
+    return so3_grid
+
+
 def rotation_matrices_to_euler(rotation_list):
     """Convert a rotation list in matrix form to Euler angles in degrees.
 
