@@ -225,7 +225,29 @@ def plot_3d_axes(ax):
 
 
 def transformation_matrix_to_cartesian(structure):
-    # From formula for change of basis, see hand written description
+    """Create the transformation matrix for a change of basis from the
+    coordinate system given by the structure lattice to cartesian.
+
+    The function implements a change of basis from the coordinate system specified
+    by the structure lattice to a cartesian coordinate system with a standard basis
+    [1, 0, 0], [0, 1, 0], [0, 0, 1]. The transformation matrix is greatly simplified
+    from the general case since the target basis set is cartesian.
+
+    See https://en.wikipedia.org/wiki/Change_of_basis or any text covering introductory
+    linear algebra.
+
+    Parameters
+    ----------
+        structure : diffpy.structure.Structure
+            Structure with a lattice defining the coordinate system
+        direction : array-like of three floats
+            3D vector to be converted
+
+    Returns
+    -------
+        transformed_direction : np.array
+            Direction with basis changed to cartesian.
+    """
     a = structure.lattice.a
     b = structure.lattice.b
     c = structure.lattice.c
@@ -374,11 +396,13 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
 def rotation_matrices_to_euler(rotation_list):
     """Convert a rotation list in matrix form to Euler angles in degrees.
 
-    Arguments:
-        rotation_list: np.array of three or more dimensions, where the last two
-            correspond the 3x3 matrix
+    Parameters
+    ----------
+    rotation_list: np.array
+        Three or more dimensions, where the last two correspond the 3x3 matrix
 
-    Returns:
+    Returns
+    -------
         Rotation list in Euler angles in degrees with duplicates removed.
     """
     # Remove duplicates
