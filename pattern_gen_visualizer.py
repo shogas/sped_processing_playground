@@ -114,7 +114,7 @@ current_structure = 0
 
 
 def angle_between_cartesian(a, b):
-    return math.acos(np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b)))
+    return math.acos(max(-1, min(1.0, np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b)))))
 
 
 def angle_between_directions(structure,
@@ -283,6 +283,48 @@ def direction_from_cartesian(structure_to, direction_to):
     return np.dot(transform, direction_to)
 
 
+def crystal_dot(metric_tensor, a, b):
+    """Dot product between directions in arbitrary crystal system.
+
+    Parameters
+    ----------
+    metric_tensor : np.array
+        Metric tensor for the crystal system.
+    a, b : array-like
+        The two direction to compute the dot product between.
+
+    Returns
+    -------
+    dot_product : float
+        Dot product between a and b in the coordinate system specified by
+        metric_tensor.
+    """
+    return np.dot(a, np.dot(metric_tensor, b))
+
+
+def angle_between_directions(structure, direction_1, direction_2):
+    """Angle between directions in the coordinate system given by the structure
+    lattice.
+
+    Parameters
+    ----------
+    structure : diffpy.structure.Structure
+        Structure in which to compute the angle.
+    direction_1, direction_2 : array-like
+        Two directions specified in the coordinate system given by the
+        structure lattice.
+
+    Returns
+    -------
+    angle : float
+        Angle between direction_1 and direction_2 in radians.
+    """
+    metrics = structure.lattice.metrics
+    len_1_squared = crystal_dot(metrics, direction_1, direction_1)
+    len_2_squared = crystal_dot(metrics, direction_2, direction_2)
+    return math.acos(crystal_dot(metrics, direction_1, direction_2) / math.sqrt(len_1_squared * len_2_squared))
+
+
 def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inplane_rotations, resolution):
     """Generate a rotation list covering the inverse pole figure specified by three
         corners in cartesian coordinates.
@@ -319,9 +361,20 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
     if len(corner_c) == 4:
         corner_c = uvtw_to_uvw(*corner_c)
 
-    corner_a = direction_to_cartesian(structure, corner_a)
-    corner_b = direction_to_cartesian(structure, corner_b)
-    corner_c = direction_to_cartesian(structure, corner_c)
+    lattice = structure.lattice
+
+    corner_a = corner_a @ lattice.stdbase
+    corner_b = corner_b @ lattice.stdbase
+    corner_c = corner_c @ lattice.stdbase
+
+    # Rotate the list such that corner_a parallel (0, 0, 1)
+    angle_corner_a = angle_between_cartesian(corner_a, (0, 0, 1))
+    if not np.allclose(angle_corner_a, 0):
+        axis_corner_a_to_up = np.cross(corner_a, (0, 0, 1))
+        rotation_corner_a_to_up = axangle2mat(axis_corner_a_to_up, angle_corner_a)
+        corner_a = rotation_corner_a_to_up @ corner_a
+        corner_b = rotation_corner_a_to_up @ corner_b
+        corner_c = rotation_corner_a_to_up @ corner_c
 
     corner_a /= np.linalg.norm(corner_a)
     corner_b /= np.linalg.norm(corner_b)
@@ -345,6 +398,7 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
     # b or c farthest away from a.
     theta_count = math.ceil(max(angle_a_to_b, angle_a_to_c) / resolution)
     phi_count = math.ceil(angle_b_to_c / resolution)
+    phi_count += 1  # trigonal requires one extra space. Rounding errors?
     inplane_rotation_count = len(inplane_rotations)
     rotations = np.zeros((theta_count, phi_count, inplane_rotation_count, 3, 3))
 
@@ -368,15 +422,19 @@ def generate_complete_rotation_list(structure, corner_a, corner_b, corner_c, inp
         # case where local_b and local_c are coincident.
         angle_local_b_to_c = angle_between_cartesian(local_b, local_c)
         axis_local_b_to_c = np.cross(local_b, local_c)
-        if np.count_nonzero(axis_local_b_to_c) == 0:
-            # Theta rotation ended at the same position. First position, might
-            # be other cases?
-            axis_local_b_to_c = corner_a
+        if np.isclose(np.dot(axis_local_b_to_c, corner_a), 0):
+            # corner_a, local_b, local_c are coplanar. Use the vector half way
+            # between local_b and local_c. If this is not the first rotation
+            # (local_b and local_c are equal), set the angle to pi. This
+            # creates rotations away from the plane, still on the sphere.
+            axis_local_b_to_c = local_b + local_c
+            if not np.allclose(local_b, local_c):
+                angle_local_b_to_c = np.pi
         axis_local_b_to_c /= np.linalg.norm(axis_local_b_to_c)
 
         # Generate points along the great circle arc with a distance defined by
         # resolution.
-        phi_count_local = math.ceil(angle_local_b_to_c / resolution)
+        phi_count_local = max(1, math.ceil(angle_local_b_to_c / resolution))
         for j, phi in enumerate(
                 np.linspace(0, angle_local_b_to_c, phi_count_local)):
             rotation_phi = axangle2mat(axis_local_b_to_c, phi)
