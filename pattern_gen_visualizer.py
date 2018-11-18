@@ -30,7 +30,6 @@ structure_monoclinic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_t
 beam_energy_keV = 200
 specimen_thickness = 80  # Ångström
 target_pattern_dimension_pixels = 144
-angstrom_per_pixel = 19.6
 half_pattern_size = target_pattern_dimension_pixels // 2
 simulated_gaussian_sigma = 0.02
 reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
@@ -785,21 +784,21 @@ ax_uvw_b    = plt.axes([0.75, 0.02, 0.04, 0.03])
 ax_zbwz     = plt.axes([0.80, 0.02, 0.04, 0.03])
 ax_rot_list = plt.axes([0.85, 0.02, 0.04, 0.03])
 
-slider_scale  = Slider(ax_scale,  'Scale',    0.0, 0.1,  valinit=reciprocal_angstrom_per_pixel, valstep=0.001)
-slider_sigma  = Slider(ax_sigma,  '$\\sigma$', 0.0, 0.05, valinit=0.04,  valstep=0.001)
-slider_energy = Slider(ax_energy, 'Energy',   100, 300,  valinit=200,   valstep=10)
-slider_thick  = Slider(ax_thick,  'Thick',    1,   100,  valinit=80,    valstep=1)
+slider_scale  = Slider(ax_scale,  'Scale',    0.0, 0.1,  valinit=reciprocal_angstrom_per_pixel, valstep=0.001, valfmt="%1.3f")
+slider_sigma  = Slider(ax_sigma,  '$\\sigma$', 0.0, 0.05, valinit=simulated_gaussian_sigma,  valstep=0.001, valfmt="%1.3f")
+slider_energy = Slider(ax_energy, 'Energy',   100, 300,  valinit=beam_energy_keV,   valstep=10, valfmt="%1.0f")
+slider_thick  = Slider(ax_thick,  'Thick',    1,   100,  valinit=specimen_thickness,    valstep=1, valfmt="%1.0f")
 
-phi_start   = 315
-theta_start = 35.264+5
-psi_start   = 215
+phi_start   = 0.
+theta_start = 0.
+psi_start   = 0.
 slider_phi    = Slider(ax_phi,    '$\\phi$',    0.0, 360.0, valinit=phi_start,   valstep=0.1)
 slider_theta  = Slider(ax_theta,  '$\\theta$', 0.0, 360.0, valinit=theta_start, valstep=0.1)
 slider_psi    = Slider(ax_psi,    '$\\psi$',    0.0, 360.0, valinit=psi_start,   valstep=0.1)
 
-txt_u = TextBox(ax_u_txt, 'u', initial='1')
-txt_v = TextBox(ax_v_txt, 'v', initial='1')
-txt_w = TextBox(ax_w_txt, 'w', initial='2')
+txt_u = TextBox(ax_u_txt, 'u', initial='0')
+txt_v = TextBox(ax_v_txt, 'v', initial='0')
+txt_w = TextBox(ax_w_txt, 'w', initial='1')
 btn_uvw = Button(ax_uvw_b, 'Set')
 btn_zbwz = Button(ax_zbwz, structures[current_structure]['name'])
 btn_rot_list = Button(ax_rot_list, 'List')
