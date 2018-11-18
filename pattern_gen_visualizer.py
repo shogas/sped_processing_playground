@@ -14,8 +14,9 @@ from transforms3d.euler import axangle2euler
 from transforms3d.euler import axangle2mat
 
 import pyxem as pxm
-from pyxem.libraries.structure_library import StructureLibrary
 from pyxem.generators.indexation_generator import IndexationGenerator
+from pyxem.generators.structure_library_generator import StructureLibraryGenerator
+from pyxem.utils.sim_utils import rotation_list_stereographic
 
 import diffpy.structure
 
@@ -31,7 +32,7 @@ beam_energy_keV = 200
 specimen_thickness = 80  # Ångström
 target_pattern_dimension_pixels = 144
 half_pattern_size = target_pattern_dimension_pixels // 2
-simulated_gaussian_sigma = 0.02
+simulated_gaussian_sigma = 0.04
 reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
 
 # For local rotation list
@@ -81,35 +82,43 @@ structures = [
     {
         'name': 'ZB',
         'structure': structure_zb,
+        'system': 'cubic',
         'corners': [ (0, 0, 1), (1, 0, 1), (1, 1, 1) ]
     },
     {
         'name': 'WZ',
         'structure': structure_wz,
+        'system': 'hexagonal',
         'corners': [ (0, 0, 0, 1), (1, 1, -2, 0), (1, 0, -1, 0) ]
     },
     {
         'name': 'ort',
         'structure': structure_orthorombic,
+        'system': 'orthorombic',
         'corners': [ (0, 0, 1), (1, 0, 0), (0, 1, 0) ]
     },
     {
         'name': 'tet',
         'structure': structure_tetragonal,
+        'system': 'tetragonal',
         'corners': [ (0, 0, 1), (1, 0, 0), (1, 1, 0) ]
     },
     {
         'name': 'tri',
         'structure': structure_trigonal,
+        'system': 'trigonal',
         'corners': [ (0, 0, 0, 1), (-1, 1, 0, 0), (0, 1, -1, 0) ]
     },
     {
         'name': 'mon',
         'structure': structure_monoclinic,
+        'system': 'monoclinic',
         'corners': [ (0, 0, 1), (0, -1, 0), (0, 1, 0) ]
     }
 ]
 current_structure = 0
+
+current_rotation_list = None
 
 
 def angle_between_cartesian(a, b):
@@ -220,7 +229,10 @@ def plot_3d_axes(ax):
     axis_c = ax.plot([0, 0], [0, 0], [0, 1], c=(0, 0, 1))
 
     rot_count = generate_rotation_list(structures[current_structure], 0, 0, 0, max_theta, resolution).shape[0]
-    return axis_a, axis_b, axis_c, ax.scatter([0]*rot_count, [0]*rot_count, [0]*rot_count)
+    scatter_collection = ax.scatter([0]*rot_count, [0]*rot_count, [0]*rot_count,
+            picker=True, pickradius=3.0, cmap='viridis_r', depthshade=False)
+
+    return axis_a, axis_b, axis_c, scatter_collection
 
 
 def transformation_matrix_to_cartesian(structure):
@@ -543,12 +555,12 @@ def equispaced_so3_grid(alpha_max, beta_max, gamma_max, resolution=2.5,
     return so3_grid
 
 
-def rotation_matrices_to_euler(rotation_list):
+def rotation_matrices_to_euler(rotation_matrices):
     """Convert a rotation list in matrix form to Euler angles in degrees.
 
     Parameters
     ----------
-    rotation_list: np.array
+    rotation_matrices: np.array
         Three or more dimensions, where the last two correspond the 3x3 matrix
 
     Returns
@@ -556,16 +568,44 @@ def rotation_matrices_to_euler(rotation_list):
         Rotation list in Euler angles in degrees with duplicates removed.
     """
     # Remove duplicates
-    rotation_list = np.unique(rotation_list.reshape(-1, 3, 3), axis=0)
+    rotation_matrices = np.unique(rotation_matrices.reshape(-1, 3, 3), axis=0)
     # Convert to euler angles in degrees
-    return np.rad2deg([mat2euler(rotation_matrix, 'rzxz') for rotation_matrix in rotation_list])
+    return np.rad2deg([mat2euler(rotation_matrix, 'rzxz') for rotation_matrix in rotation_matrices])
 
 
-def update_rotation(rotation_matrices):
-    rotation_matrices = rotation_matrices.reshape(-1, 3, 3)
+def rotation_euler_to_matrices(rotation_list):
+    """Convert a list of Euler angles in degrees (rzxz) to rotation matrices.
+
+    Parameters
+    ----------
+    rotation_list: np.array
+        List of rotations in Euler angles in degrees (rzxz convention)
+
+    Returns
+    -------
+        List of rotation matrices of shape [len(rotation_list), 3, 3]
+    """
+    # Convert to euler angles in degrees
+    return np.array([euler2mat(*np.deg2rad(r), 'rzxz') for r in rotation_list])
+
+
+def update_rotation(rotation_list, colors):
+    rotation_matrices = rotation_euler_to_matrices(rotation_list)
     v = np.empty((rotation_matrices.shape[0], 3))
     for i, rotation_matrix in enumerate(rotation_matrices):
         v[i] = np.dot(rotation_matrix, np.array([0, 0, 1]).T)
+    if colors is not None:
+        colors = np.array(colors)
+        colors -= colors.min()
+        colors /= colors.max()
+        colors = colors**2
+        rotation_scatter.set_array(np.array(colors))
+        rotation_scatter.set_cmap('viridis_r')
+        rotation_scatter.update_scalarmappable()
+        rotation_scatter._facecolor3d = rotation_scatter.get_facecolor()
+        rotation_scatter._edgecolor3d = rotation_scatter.get_facecolor()
+        rotation_scatter.stale = True
+
     rotation_scatter._offsets3d = v.T
 
 
@@ -598,7 +638,7 @@ def update_pattern(_ = None):
     img.set_data(s.data)
 
     rotation_matrices = generate_rotation_list(structure, phi, theta, psi, max_theta, resolution)
-    update_rotation(rotation_matrices)
+    update_rotation(rotation_matrices_to_euler(rotation_matrices), None)
 
     fig.canvas.draw_idle()
 
@@ -659,6 +699,8 @@ def update_uvw(_ = None):
     slider_theta.set_val(theta)
     slider_psi.set_val(psi)
 
+    global current_rotation_list
+    current_rotation_list = None
     update_pattern()
 
 
@@ -680,38 +722,26 @@ def uvtw_to_uvw(u, v, t, w):
     return tuple((int(x/common_factor)) for x in (U, V, W))
 
 
-def plot_lib_2d(library, size, scale, sigma, max_r, phase_name, rotation_list):
-    patterns = np.empty((rotation_list.shape[0], rotation_list.shape[1], size, size))
+def update_rotation_list(_ = None):
+    reciprocal_angstrom_per_pixel = slider_scale.val
+    simulated_gaussian_sigma = slider_sigma.val
+    beam_energy = slider_energy.val
+    specimen_thickness = slider_thick.val
 
-    for i in range(rotation_list.shape[0]):
-        for j in range(rotation_list.shape[1]):
-            # patterns[i, j] = library[phase_name][tuple(np.rad2deg(mat2euler(rotation_list[i, j], 'rzxz')))]['Sim'].as_signal(size, sigma, max_r)
-            patterns[i, j] = library.get_library_entry(phase_name, tuple(np.rad2deg(mat2euler(rotation_list[i, j], 'rzxz'))))['Sim'].as_signal(size, sigma, max_r)
+    structure_info = structures[current_structure]
 
-    pxm.ElectronDiffraction(patterns).plot(cmap='viridis_r')
+    structure_info = structures[current_structure]
+    phase_name = structure_info['name']
+    structure = structure_info['structure']
 
-
-def show_rotation_list(structure_info, reciprocal_angstrom_per_pixel, simulated_gaussian_sigma, beam_energy, specimen_thickness):
-    phases = [structure_info['name']]
-
-    # Ångström^{-1}, extent of relrods in reciprocal space. Inverse of specimen thickness is a starting points
+    # Ångström^{-1}, extent of relrods in reciprocal space. Inverse of specimen thickness is a starting point
     max_excitation_error = 1/specimen_thickness
     reciprocal_radius = reciprocal_angstrom_per_pixel*(half_pattern_size - 1)
+    resolution = np.deg2rad(2)
 
-    structure = structure_info['structure']
-    rotation_list = generate_complete_rotation_list(
-        structure,
-        *structure_info['corners'],
-        [0],
-        resolution=np.deg2rad(1))
-    # Only one inplane rotation angle, remove this extra dimension
-    rotation_list = rotation_list.reshape(rotation_list.shape[0], -1, 3, 3)
-    rotation_list_euler = rotation_matrices_to_euler(rotation_list)
-
-    structure_library = StructureLibrary(
-            phases,
-            [structure],
-            [rotation_list_euler])
+    structure_library_generator = StructureLibraryGenerator([
+        (phase_name, structure, structure_info['system'])])
+    structure_library = structure_library_generator.get_orientations_from_stereographic_triangle([[0]], resolution)
 
     gen = pxm.DiffractionGenerator(beam_energy, max_excitation_error=max_excitation_error)
     library_generator = pxm.DiffractionLibraryGenerator(gen)
@@ -723,34 +753,32 @@ def show_rotation_list(structure_info, reciprocal_angstrom_per_pixel, simulated_
             half_shape=(half_pattern_size, half_pattern_size),
             with_direct_beam=False)
 
-    plot_lib_2d(diffraction_library,
-            phase_name=structure_info['name'],
-            rotation_list=rotation_list,
-            size=target_pattern_dimension_pixels,
-            scale=reciprocal_angstrom_per_pixel,
-            sigma=simulated_gaussian_sigma,
-            max_r=reciprocal_radius)
+    global current_rotation_list
+    current_rotation_list = structure_library.orientations[0]
 
-    plt.show()
+    global current_rotation_list_signals
+    current_rotation_list_signals = []
+    rotation_list_colors = []
+    for rotation in current_rotation_list:
+        signal = diffraction_library.get_library_entry(phase_name, tuple(rotation))['Sim'].as_signal(
+                target_pattern_dimension_pixels,
+                simulated_gaussian_sigma,
+                reciprocal_radius)
+        current_rotation_list_signals.append(signal)
+        rotation_list_colors.append(np.sum(signal.data))
+
+    update_rotation(current_rotation_list, rotation_list_colors)
+    fig.canvas.draw_idle()
 
 
-def update_rotation_list(_ = None):
-    reciprocal_angstrom_per_pixel = slider_scale.val
-    simulated_gaussian_sigma = slider_sigma.val
-    beam_energy = slider_energy.val
-    specimen_thickness = slider_thick.val
-
-    structure_info = structures[current_structure]
-    update_rotation(generate_complete_rotation_list(
-        structure_info['structure'],
-        *structure_info['corners'],
-        [0],
-        resolution=np.deg2rad(2)))
-
-    # rots = [euler2mat(*angles, 'rzxz') for angles in equispaced_s2_grid((0, np.deg2rad(90)), (0, np.deg2rad(45)), resolution=np.deg2rad(2))]
-    # update_rotation(np.array(rots))
-
-    # show_rotation_list(structures[current_structure], reciprocal_angstrom_per_pixel, simulated_gaussian_sigma, beam_energy, specimen_thickness)
+def update_scatter_pick(event):
+    if current_rotation_list is not None:
+        scatter_point_index = event.ind[0]
+        # x, y, z = event.artist._offsets3d
+        # print(x[scatter_point_index], y[scatter_point_index], z[scatter_point_index])
+        # print(rotation_scatter.__dict__.keys())
+        # print(current_rotation_list[scatter_point_index])
+        img.set_data(current_rotation_list_signals[scatter_point_index])
 
 
 gen = pxm.DiffractionGenerator(beam_energy_keV, max_excitation_error=1/specimen_thickness)
@@ -762,6 +790,7 @@ fig = plt.figure()
 
 ax_real = fig.add_axes([0.55, 0.25, 0.45, 0.72], projection='3d')
 [ax_a], [ax_b], [ax_c], rotation_scatter = plot_3d_axes(ax_real)
+fig.canvas.mpl_connect('pick_event', update_scatter_pick)
 
 
 ax_img = fig.add_axes([0.05, 0.25, 0.45, 0.72])
