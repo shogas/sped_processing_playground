@@ -36,7 +36,7 @@ simulated_gaussian_sigma = 0.02
 reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
 
 # For local rotation list
-max_theta = np.deg2rad(10)
+max_theta = np.deg2rad(5)
 resolution = np.deg2rad(10)
 
 
@@ -593,7 +593,8 @@ def plot_lib_2d(library, size, scale, sigma, max_r, phase_name, rotation_list):
 
     for i in range(rotation_list.shape[0]):
         for j in range(rotation_list.shape[1]):
-            patterns[i, j] = library[phase_name][tuple(np.rad2deg(mat2euler(rotation_list[i, j], 'rzxz')))]['Sim'].as_signal(size, sigma, max_r)
+            # patterns[i, j] = library[phase_name][tuple(np.rad2deg(mat2euler(rotation_list[i, j], 'rzxz')))]['Sim'].as_signal(size, sigma, max_r)
+            patterns[i, j] = library.get_library_entry(phase_name, tuple(np.rad2deg(mat2euler(rotation_list[i, j], 'rzxz'))))['Sim'].as_signal(size, sigma, max_r)
 
     pxm.ElectronDiffraction(patterns).plot(cmap='viridis_r')
 
@@ -654,7 +655,10 @@ def update_rotation_list(_ = None):
         [0],
         resolution=np.deg2rad(2)))
 
-    show_rotation_list(structures[current_structure], reciprocal_angstrom_per_pixel, simulated_gaussian_sigma, beam_energy, specimen_thickness)
+    # rots = [euler2mat(*angles, 'rzxz') for angles in equispaced_s2_grid((0, np.deg2rad(90)), (0, np.deg2rad(45)), resolution=np.deg2rad(2))]
+    # update_rotation(np.array(rots))
+
+    # show_rotation_list(structures[current_structure], reciprocal_angstrom_per_pixel, simulated_gaussian_sigma, beam_energy, specimen_thickness)
 
 
 gen = pxm.DiffractionGenerator(beam_energy_keV, max_excitation_error=1/specimen_thickness)
