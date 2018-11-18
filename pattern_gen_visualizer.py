@@ -19,10 +19,13 @@ from pyxem.generators.indexation_generator import IndexationGenerator
 
 import diffpy.structure
 
-structure_zb_file = 'D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
-# structure_zb_file = 'D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_primitive.cif'
-structure_wz_file = 'D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif'
-# structure_wz_file = 'D:/Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_primitive.cif'
+structure_zb_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+structure_wz_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif'
+# TODO: structures
+structure_orthorombic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+structure_tetragonal_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+structure_trigonal_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+structure_monoclinic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
 
 beam_energy_keV = 200
 specimen_thickness = 80  # Ångström
@@ -48,20 +51,64 @@ def structure_manual():
     return diffpy.structure.Structure(atoms=atom_list, lattice=lattice)
 
 
-structure_zb = diffpy.structure.loadStructure('file:///' + structure_zb_file)
-structure_wz = diffpy.structure.loadStructure('file:///' + structure_wz_file)
+structure_zb = diffpy.structure.loadStructure(structure_zb_file)
+structure_wz = diffpy.structure.loadStructure(structure_wz_file)
+structure_orthorombic = diffpy.structure.loadStructure(structure_orthorombic_file)
+structure_tetragonal = diffpy.structure.loadStructure(structure_tetragonal_file)
+structure_trigonal = diffpy.structure.loadStructure(structure_trigonal_file)
+structure_monoclinic = diffpy.structure.loadStructure(structure_monoclinic_file)
+
+structure_orthorombic.lattice.a = 1
+structure_orthorombic.lattice.b = 2
+structure_orthorombic.lattice.c = 3
+
+structure_tetragonal.lattice.a = 1
+structure_tetragonal.lattice.b = 1
+structure_tetragonal.lattice.c = 2
+
+structure_trigonal.lattice.a = 1
+structure_trigonal.lattice.b = 1
+structure_trigonal.lattice.c = 1
+structure_trigonal.lattice.alpha = 100
+structure_trigonal.lattice.beta = 100
+structure_trigonal.lattice.gamma = 100
+
+structure_monoclinic.lattice.a = 1
+structure_monoclinic.lattice.b = 1
+structure_monoclinic.lattice.c = 1
+structure_monoclinic.lattice.beta = 100
 
 structures = [
-        {
-            'name': 'ZB',
-            'structure': structure_zb,
-            'corners': [ (0, 0, 1), (1, 0, 1), (1, 1, 1) ]
-        },
-        {
-            'name': 'WZ',
-            'structure': structure_wz,
-            'corners': [ (0, 0, 0, 1), (1, 1, -2, 0), (1, 0, -1, 0) ]
-        }
+    {
+        'name': 'ZB',
+        'structure': structure_zb,
+        'corners': [ (0, 0, 1), (1, 0, 1), (1, 1, 1) ]
+    },
+    {
+        'name': 'WZ',
+        'structure': structure_wz,
+        'corners': [ (0, 0, 0, 1), (1, 1, -2, 0), (1, 0, -1, 0) ]
+    },
+    {
+        'name': 'ort',
+        'structure': structure_orthorombic,
+        'corners': [ (0, 0, 1), (1, 0, 0), (0, 1, 0) ]
+    },
+    {
+        'name': 'tet',
+        'structure': structure_tetragonal,
+        'corners': [ (0, 0, 1), (1, 0, 0), (1, 1, 0) ]
+    },
+    {
+        'name': 'tri',
+        'structure': structure_trigonal,
+        'corners': [ (0, 0, 0, 1), (-1, 1, 0, 0), (0, 1, -1, 0) ]
+    },
+    {
+        'name': 'mon',
+        'structure': structure_monoclinic,
+        'corners': [ (0, 0, 1), (0, -1, 0), (0, 1, 0) ]
+    }
 ]
 current_structure = 0
 
