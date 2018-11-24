@@ -27,12 +27,10 @@ specimen_thickness = 80  # Ångström
 target_pattern_dimension_pixels = 144
 half_pattern_size = target_pattern_dimension_pixels // 2
 simulated_gaussian_sigma = 0.04
-reciprocal_angstrom_per_pixel = 0.035 # From 110 direction, compared to a_crop
+reciprocal_angstrom_per_pixel = 0.032 # From 110 direction, compared to a_crop
 
-# For local rotation list
-max_theta = np.deg2rad(5)
-resolution = np.deg2rad(10)
 
+# Structure definitions
 
 def structure_manual():
     # This seems to give the same result as structure_zb_file
@@ -164,8 +162,6 @@ def generate_rotation_list_directed(structure, phi, theta, psi, max_theta, resol
     lattice_to_zone = euler2mat(phi, -theta, psi, 'rzxz')
 
     # This generates rotations around the given axis, with a denser sampling close to the axis
-    max_theta = max_theta
-    resolution = resolution
     min_psi = -np.pi
     max_psi = np.pi
     theta_count = math.ceil(max_theta / resolution)
@@ -185,7 +181,7 @@ def generate_fibonacci_spiral(structure, phi, theta, psi, max_theta, _):
     zone_to_rotation = np.identity(3)
     lattice_to_zone = np.identity(3)
 
-    lattice_to_zone = euler2mat(phi, -theta, psi, 'rzxz')
+    lattice_to_zone = euler2mat(phi, theta, psi, 'rzxz')
 
     n = 100
     golden_angle = np.pi * (3 - np.sqrt(5))
@@ -220,7 +216,7 @@ def plot_3d_axes(ax):
     axis_b = ax.plot([0, 0], [0, 1], [0, 0], c=(0, 1, 0))
     axis_c = ax.plot([0, 0], [0, 0], [0, 1], c=(0, 0, 1))
 
-    rot_count = generate_rotation_list(structures[current_structure], 0, 0, 0, max_theta, resolution).shape[0]
+    rot_count = 1  # Scatter plot seems to add new points automatically, just create one point for a start
     scatter_collection = ax.scatter([0]*rot_count, [0]*rot_count, [0]*rot_count,
             picker=True, pickradius=3.0, cmap='viridis_r', depthshade=False)
 
@@ -629,6 +625,8 @@ def update_pattern(_ = None):
     s = sim.as_signal(target_pattern_dimension_pixels, simulated_gaussian_sigma, reciprocal_radius)
     img.set_data(s.data)
 
+    max_theta = np.deg2rad(5)
+    resolution = np.deg2rad(10)
     rotation_matrices = generate_rotation_list(structure, phi, theta, psi, max_theta, resolution)
     update_rotation(rotation_matrices_to_euler(rotation_matrices), None)
 
@@ -669,9 +667,10 @@ def update_uvw(_ = None):
     w = int(txt_w.text)
 
     structure = structures[current_structure]['structure']
-    rotation_angle = angle_between_directions(structure, (0, 0, 1), (u, v, w))
     direction = direction_to_cartesian(structure, (u, v, w))
     direction /= np.linalg.norm(direction)
+    rotation_angle = angle_between_cartesian((0, 0, 1), direction)
+    # rotation_angle = np.deg2rad(lattice.angle((0, 0, 1), (u, v, w)))
 
     axis = np.cross(np.array([0.0, 0.0, 1.0]), direction)
     if np.count_nonzero(axis) == 0:
@@ -679,17 +678,16 @@ def update_uvw(_ = None):
         axis = np.array([0, 0, 1])
     axis /= np.linalg.norm(axis)
 
-    # The rotation should describe the "camera" rotation, so we need to invert it
-    rotation_angle = -rotation_angle
-
     phi, theta, psi = np.rad2deg(axangle2euler(axis, rotation_angle, axes='rzxz'))
     if phi < 0:   phi   += 360
     if theta < 0: theta += 360
     if psi < 0:   psi   += 360
 
+    slider_phi.eventson = False  # Prevent set_val from running update_pattern multiple times
     slider_phi.set_val(phi)
     slider_theta.set_val(theta)
     slider_psi.set_val(psi)
+    slider_phi.eventson = True
 
     global current_rotation_list
     current_rotation_list = None
@@ -766,10 +764,6 @@ def update_rotation_list(_ = None):
 def update_scatter_pick(event):
     if current_rotation_list is not None:
         scatter_point_index = event.ind[0]
-        # x, y, z = event.artist._offsets3d
-        # print(x[scatter_point_index], y[scatter_point_index], z[scatter_point_index])
-        # print(rotation_scatter.__dict__.keys())
-        # print(current_rotation_list[scatter_point_index])
         img.set_data(current_rotation_list_signals[scatter_point_index])
 
 
@@ -778,7 +772,7 @@ gen = pxm.DiffractionGenerator(beam_energy_keV, max_excitation_error=1/specimen_
 # Choose local rotation list method
 generate_rotation_list = generate_fibonacci_spiral
 
-fig = plt.figure()
+fig = plt.figure('Pattern visualizer')
 
 ax_real = fig.add_axes([0.55, 0.25, 0.45, 0.72], projection='3d')
 [ax_a], [ax_b], [ax_c], rotation_scatter = plot_3d_axes(ax_real)
