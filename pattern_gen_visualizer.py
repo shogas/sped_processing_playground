@@ -45,6 +45,7 @@ def structure_manual():
 
 
 structure_zb_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+# structure_zb_file = r'D:\Dokumenter\MTNANO\Prosjektoppgave\Data\a-AlFeSi_204.cif'
 structure_wz_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif'
 structure_orthorombic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Fe2Al5_SM_1201135.cif'
 structure_monoclinic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/FeAl3_SM_sd_0261951.cif'
@@ -150,11 +151,11 @@ def generate_fibonacci_spiral(structure, phi, theta, psi, max_theta, _):
 
     rotations = np.empty((n, 3, 3))
     for i, point in enumerate(points):
-        # Simplifications to cos angle formula since one of the directions is (0, 0, 1)
-        point_angle = math.acos(point[2]/np.linalg.norm(point))
-        point_axis = np.cross(np.array([0, 0, 1]), point)
+        # dot(point, (0, 0, 1)) == point[2]
+        point_angle = math.acos(point[2]/(np.linalg.norm(point)))
+        point_axis = np.cross((0, 0, 1), point)
         if np.count_nonzero(point_axis) == 0:
-            point_axis = np.array([0, 0, 1])
+            point_axis = (0, 0, 1)
         zone_to_rotation = axangle2mat(point_axis, point_angle)
         rotations[i] = lattice_to_zone @ zone_to_rotation
 
@@ -407,7 +408,7 @@ def update_rotation(rotation_list, colors):
     rotation_matrices = rotation_euler_to_matrices(rotation_list)
     v = np.empty((rotation_matrices.shape[0], 3))
     for i, rotation_matrix in enumerate(rotation_matrices):
-        v[i] = np.dot(rotation_matrix, np.array([0, 0, 1]).T)
+        v[i] = np.dot(rotation_matrix, (0, 0, 1))
     if colors is not None:
         colors = np.array(colors)
         colors -= colors.min()
@@ -442,10 +443,13 @@ def update_pattern(_ = None):
             structure.lattice.beta,
             structure.lattice.gamma,
             baserot=structure_rotation)
-    structure.placeInLattice(lattice_rotated)
+
+    # Don't change the original
+    structure_rotated = diffpy.structure.Structure(structure)
+    structure_rotated.placeInLattice(lattice_rotated)
 
     reciprocal_radius = reciprocal_angstrom_per_pixel*(half_pattern_size - 1)
-    sim = gen.calculate_ed_data(structure, reciprocal_radius, with_direct_beam=False)
+    sim = gen.calculate_ed_data(structure_rotated, reciprocal_radius, with_direct_beam=False)
     # sim.intensities = np.full(sim.direct_beam_mask.shape, 1)  # For testing, ignore intensities
     # sim._intensities = np.log(1 + sim._intensities)
     s = sim.as_signal(target_pattern_dimension_pixels, simulated_gaussian_sigma, reciprocal_radius)
@@ -464,10 +468,10 @@ def update_structure(_ = None):
     current_structure = (current_structure + 1) % len(structures)
 
     structure_info = structures[current_structure]
-    structure = structure_info['structure']
-    dir_a = direction_to_cartesian(structure, (1, 0, 0))
-    dir_b = direction_to_cartesian(structure, (0, 1, 0))
-    dir_c = direction_to_cartesian(structure, (0, 0, 1))
+    lattice = structure_info['structure'].lattice
+    dir_a = lattice.cartesian((1, 0, 0))
+    dir_b = lattice.cartesian((0, 1, 0))
+    dir_c = lattice.cartesian((0, 0, 1))
     dir_a /= np.linalg.norm(dir_a)
     dir_b /= np.linalg.norm(dir_b)
     dir_c /= np.linalg.norm(dir_c)
@@ -492,28 +496,32 @@ def update_uvw(_ = None):
     v = int(txt_v.text)
     w = int(txt_w.text)
 
-    structure = structures[current_structure]['structure']
-    direction = direction_to_cartesian(structure, (u, v, w))
-    direction /= np.linalg.norm(direction)
-    rotation_angle = angle_between_cartesian((0, 0, 1), direction)
-    # rotation_angle = np.deg2rad(lattice.angle((0, 0, 1), (u, v, w)))
+    lattice = structures[current_structure]['structure'].lattice
+    uvw = np.array((u, v, w))
+    up = np.array((0.0, 0.0, 1.0))  # Following diffpy, the z-axis is aligned in the crystal and lab frame.
 
-    axis = np.cross(np.array([0.0, 0.0, 1.0]), direction)
-    if np.count_nonzero(axis) == 0:
+    rotation_angle = np.deg2rad(lattice.angle(up, uvw))  # Because lattice.angle returns degrees...
+    rotation_axis = np.cross(lattice.cartesian(up), lattice.cartesian(uvw))
+
+    if np.count_nonzero(rotation_axis) == 0:
         # Guard against parallel directions
-        axis = np.array([0, 0, 1])
-    axis /= np.linalg.norm(axis)
+        rotation_axis = up
+    rotation_axis /= np.linalg.norm(rotation_axis)
 
-    phi, theta, psi = np.rad2deg(axangle2euler(axis, rotation_angle, axes='rzxz'))
+    phi, theta, psi = np.rad2deg(axangle2euler(rotation_axis, rotation_angle, axes='rzxz'))
     if phi < 0:   phi   += 360
     if theta < 0: theta += 360
     if psi < 0:   psi   += 360
 
     slider_phi.eventson = False  # Prevent set_val from running update_pattern multiple times
+    slider_theta.eventson = False  # Prevent set_val from running update_pattern multiple times
+    slider_psi.eventson = False  # Prevent set_val from running update_pattern multiple times
     slider_phi.set_val(phi)
     slider_theta.set_val(theta)
     slider_psi.set_val(psi)
     slider_phi.eventson = True
+    slider_theta.eventson = True
+    slider_psi.eventson = True
 
     global current_rotation_list
     current_rotation_list = None
