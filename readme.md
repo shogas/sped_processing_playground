@@ -1,8 +1,11 @@
 # SPED data processing
 This is a collection of some python code for processing SPED data, mainly using [pyxem].
 
+## Pyxem orientation mapping
+The [pyxem orientation mapping notebook](SPED_orientation_mapping.ipynb) includes an shows an example of running template matching and vector matching on a GaAs nanowire SPED dataset to show crystal phase and orientation mapping in [pyXem](https://github.com/pyxem/pyxem).
+
 ## Pyxem template matching
-The [pyxem template matching notebook](pyxem_template_matching.ipynb) is the most complete code. It shows an example of running template matching on a GaAs nanowire SPED dataset and should hopefully be easy to follow. Feedback on the implementation is welcome.
+The [pyxem template matching notebook](pyxem_template_matching.ipynb) shows an example of running template matching on a GaAs nanowire SPED dataset and should hopefully be easy to follow. Feedback on the implementation is welcome.
 
 ## Preprocessing
 The [preprocessing notebook](Preprocessing.ipynb) contains some code for testing different parameters for background removal.
