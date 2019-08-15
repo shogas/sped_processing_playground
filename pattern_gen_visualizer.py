@@ -14,9 +14,9 @@ from transforms3d.euler import axangle2euler
 from transforms3d.euler import axangle2mat
 
 import pyxem as pxm
-from pyxem.generators.structure_library_generator import StructureLibraryGenerator
+from pyxem.generators.library_generator import DiffractionLibraryGenerator
 from pyxem.generators.indexation_generator import IndexationGenerator
-from pyxem.utils.sim_utils import angle_between_cartesian
+from pyxem.generators.structure_library_generator import StructureLibraryGenerator
 
 import diffpy.structure
 
@@ -44,25 +44,28 @@ def structure_manual():
     return diffpy.structure.Structure(atoms=atom_list, lattice=lattice)
 
 
-structure_zb_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
-# structure_zb_file = r'D:\Dokumenter\MTNANO\Prosjektoppgave\Data\a-AlFeSi_204.cif'
-structure_wz_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-8883_conventional_standard.cif'
-structure_orthorombic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Fe2Al5_SM_1201135.cif'
-structure_monoclinic_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/FeAl3_SM_sd_0261951.cif'
+structure_zb_file = 'D:\\Dokumenter/MTNANO/TEM/Data/structure_files/GaAs_mp-2534_conventional_standard.cif'
+structure_au_file = r'D:\Dokumenter\MTNANO\TEM/Data/structure_files/Au_mp-81_conventional_standard.cif'
+structure_mgo_file = r'D:\Dokumenter\MTNANO\TEM\Data\structure_files\MgO_mp-1265_conventional_standard.cif'
+structure_wz_file = 'D:\\Dokumenter/MTNANO/TEM/Data/structure_files/GaAs_mp-8883_conventional_standard.cif'
+structure_orthorombic_file = 'D:\\Dokumenter/MTNANO/TEM/Data/structure_files/Fe2Al5_SM_1201135.cif'
+structure_monoclinic_file = 'D:\\Dokumenter/MTNANO/TEM/Data/structure_files/FeAl3_SM_sd_0261951.cif'
 
-structure_zb = diffpy.structure.loadStructure(structure_zb_file)
-structure_wz = diffpy.structure.loadStructure(structure_wz_file)
+# structure_cubic = diffpy.structure.loadStructure(structure_zb_file)
+# structure_cubic = diffpy.structure.loadStructure(structure_au_file)
+structure_cubic = diffpy.structure.loadStructure(structure_mgo_file)
+structure_hexagonal = diffpy.structure.loadStructure(structure_wz_file)
 structure_orthorombic = diffpy.structure.loadStructure(structure_orthorombic_file)
 structure_monoclinic = diffpy.structure.loadStructure(structure_monoclinic_file)
 
-# TODO: Actual struture files
-structure_tetragonal_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+# TODO: Actual structure files
+structure_tetragonal_file = 'D:\\Dokumenter/MTNANO/TEM/Data/structure_files/GaAs_mp-2534_conventional_standard.cif'
 structure_tetragonal = diffpy.structure.loadStructure(structure_tetragonal_file)
 structure_tetragonal.lattice.a = 1
 structure_tetragonal.lattice.b = 1
 structure_tetragonal.lattice.c = 2
 
-structure_trigonal_file = 'D:\\Dokumenter/MTNANO/Prosjektoppgave/Data/Gen/NN_test_data/GaAs_mp-2534_conventional_standard.cif'
+structure_trigonal_file = 'D:\\Dokumenter/MTNANO/TEM/Data/structure_files/GaAs_mp-2534_conventional_standard.cif'
 structure_trigonal = diffpy.structure.loadStructure(structure_trigonal_file)
 structure_trigonal.lattice.a = 1
 structure_trigonal.lattice.b = 1
@@ -73,13 +76,13 @@ structure_trigonal.lattice.gamma = 100
 
 structures = [
     {
-        'name': 'ZB',
-        'structure': structure_zb,
+        'name': 'cub',
+        'structure': structure_cubic,
         'system': 'cubic',
     },
     {
-        'name': 'WZ',
-        'structure': structure_wz,
+        'name': 'hex',
+        'structure': structure_hexagonal,
         'system': 'hexagonal',
     },
     {
