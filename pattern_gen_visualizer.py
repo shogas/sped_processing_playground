@@ -640,6 +640,44 @@ def update_rotation_list(_ = None):
     fig.canvas.draw_idle()
 
 
+def update_correlation_list(_ = None):
+    reciprocal_angstrom_per_pixel = slider_scale.val
+    beam_energy = slider_energy.val
+    specimen_thickness = slider_thick.val
+
+    structure_info = structures[current_structure]
+
+    rotation_list_resolution = np.deg2rad(1)
+    phase_descriptions = [(structure_info['name'], structure_info['structure'], structure_info['system'])]
+    inplane_rotations = [[np.deg2rad(103)]]
+
+    diffraction_library, structure_library = create_diffraction_library(
+            specimen_thickness, beam_energy, reciprocal_angstrom_per_pixel,
+            rotation_list_resolution, phase_descriptions, inplane_rotations, target_pattern_dimension_pixels)
+
+    # Set up the indexer and get the indexation results
+    data_dir = r'D:\Dokumenter/MTNANO/Prosjektoppgave/Data/'
+    experimental_pattern_filename = data_dir + 'SPED_data_GaAs_NW/gen/Julie_180510_SCN45_FIB_a_three_phase_single_area.hdf5'
+    dp = pxm.load(experimental_pattern_filename, lazy=True).inav[0:1, 0:1]
+    dp = pxm.ElectronDiffraction(dp)
+    pattern_indexer = IndexationGenerator(dp, diffraction_library)
+    template_matching_results = pattern_indexer.correlate(
+            n_largest=structure_library.orientations[0].shape[0],
+            keys=[structure_info['name']],
+            parallel=False) # This is slower in parallel
+
+    global current_rotation_list
+    print(template_matching_results.data[0, 0].shape)
+    current_rotation_list = template_matching_results.isig[1:4, :].data[0, 0]
+    correlations = template_matching_results.isig[4, :].data[0, 0]
+    global current_rotation_list_signals
+    current_rotation_list_signals = []
+
+    print(correlations.argmax(), current_rotation_list[correlations.argmax()])
+    update_rotation(current_rotation_list, correlations)
+    fig.canvas.draw_idle()
+
+
 def update_scatter_pick(event):
     if current_rotation_list is not None:
         scatter_point_index = event.ind[0]
