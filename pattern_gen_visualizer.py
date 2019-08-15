@@ -14,9 +14,10 @@ from transforms3d.euler import axangle2euler
 from transforms3d.euler import axangle2mat
 
 import pyxem as pxm
-from pyxem.generators.library_generator import DiffractionLibraryGenerator
+from diffsims.generators.library_generator import DiffractionLibraryGenerator
+from diffsims.generators.structure_library_generator import StructureLibraryGenerator
 from pyxem.generators.indexation_generator import IndexationGenerator
-from pyxem.generators.structure_library_generator import StructureLibraryGenerator
+from pyxem.utils.sim_utils import sim_as_signal
 
 import diffpy.structure
 
@@ -455,7 +456,7 @@ def update_pattern(_ = None):
     sim = gen.calculate_ed_data(structure_rotated, reciprocal_radius, with_direct_beam=False)
     # sim.intensities = np.full(sim.direct_beam_mask.shape, 1)  # For testing, ignore intensities
     # sim._intensities = np.log(1 + sim._intensities)
-    s = sim.as_signal(target_pattern_dimension_pixels, simulated_gaussian_sigma, reciprocal_radius)
+    s = sim_as_signal(sim, target_pattern_dimension_pixels, simulated_gaussian_sigma, reciprocal_radius)
     img.set_data(s.data)
 
     max_theta = np.deg2rad(5)
