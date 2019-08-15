@@ -679,8 +679,8 @@ def update_correlation_list(_ = None):
 
 
 def update_scatter_pick(event):
-    if current_rotation_list is not None:
-        scatter_point_index = event.ind[0]
+    scatter_point_index = event.ind[0]
+    if current_rotation_list is not None and len(current_rotation_list_signals) > scatter_point_index:
         img.set_data(current_rotation_list_signals[scatter_point_index])
 
 
@@ -696,11 +696,12 @@ ax_real = fig.add_axes([0.55, 0.25, 0.45, 0.72], projection='3d')
 fig.canvas.mpl_connect('pick_event', update_scatter_pick)
 
 
-ax_img = fig.add_axes([0.05, 0.25, 0.45, 0.72])
+ax_img = fig.add_axes([0.05, 0.25, 0.45, 0.72], label='Diff pat')
 img = ax_img.imshow(
     np.ones((target_pattern_dimension_pixels, target_pattern_dimension_pixels)),
     vmin=0, vmax=1,
-    cmap='gray'
+    # cmap='gray'
+    cmap='viridis'
     )
 fig.colorbar(img, ax=ax_img)
 
@@ -717,8 +718,9 @@ ax_u_txt    = plt.axes([0.60, 0.02, 0.04, 0.03])
 ax_v_txt    = plt.axes([0.65, 0.02, 0.04, 0.03])
 ax_w_txt    = plt.axes([0.70, 0.02, 0.04, 0.03])
 ax_uvw_b    = plt.axes([0.75, 0.02, 0.04, 0.03])
-ax_zbwz     = plt.axes([0.80, 0.02, 0.04, 0.03])
+ax_stru     = plt.axes([0.80, 0.02, 0.04, 0.03])
 ax_rot_list = plt.axes([0.85, 0.02, 0.04, 0.03])
+ax_corr     = plt.axes([0.90, 0.02, 0.04, 0.03])
 
 slider_scale  = Slider(ax_scale,  'Scale',    0.0, 0.1,  valinit=reciprocal_angstrom_per_pixel, valstep=0.001, valfmt="%1.3f")
 slider_sigma  = Slider(ax_sigma,  '$\\sigma$', 0.0, 0.05, valinit=simulated_gaussian_sigma,  valstep=0.001, valfmt="%1.3f")
@@ -736,8 +738,9 @@ txt_u = TextBox(ax_u_txt, 'u', initial='0')
 txt_v = TextBox(ax_v_txt, 'v', initial='0')
 txt_w = TextBox(ax_w_txt, 'w', initial='1')
 btn_uvw = Button(ax_uvw_b, 'Set')
-btn_zbwz = Button(ax_zbwz, structures[current_structure]['name'])
+btn_zbwz = Button(ax_stru, structures[current_structure]['name'])
 btn_rot_list = Button(ax_rot_list, 'List')
+btn_corr = Button(ax_corr, 'Corr')
 
 slider_scale.on_changed(update_generator)
 slider_sigma.on_changed(update_generator)
@@ -751,6 +754,7 @@ slider_psi.on_changed(update_pattern)
 btn_uvw.on_clicked(update_uvw)
 btn_zbwz.on_clicked(update_structure)
 btn_rot_list.on_clicked(update_rotation_list)
+btn_corr.on_clicked(update_correlation_list)
 
 update_generator()
 
