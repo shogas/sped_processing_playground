@@ -543,6 +543,63 @@ def hkil_to_hkl(h, k, i, l):
     return (h, k, l)
 
 
+def create_diffraction_library(
+        specimen_thickness, beam_energy_keV, reciprocal_angstrom_per_pixel,
+        rotation_list_resolution, phase_descriptions, inplane_rotations, pattern_size):
+    """Create a diffraction library.
+
+    Parameters
+    ----------
+    specimen_thickness : float
+        Specimen thickness in angstrom, used to calculate max excitation eror.
+    beam_energy_keV : float
+        Beam energy in keV.
+    reciprocal_angstrom_per_pixel : float
+        Calibration in reciprocal space, (Å^-1)/px.
+    rotation_list_resolution : float
+        Rotation list resolution in radians.
+    phase_descriptions : list
+        List with one phase description for each phase. A phase description is
+        a triplet of (phase_name, structure, crystal system).
+    inplane_rotations : list
+        List with one list of inplane rotations in radians for each phase.
+    pattern_size : int
+        Side length in pixels of the generated diffraction patterns.
+
+    Returns
+    -------
+    diffraction_library : DiffractionLibrary
+        Diffraction library created using given parameters.
+    structure_library : StructureLibrary
+        Structure library with orientations from a stereographic triangle used
+        to create the diffraction library.
+
+    """
+    half_pattern_size = pattern_size // 2
+    max_excitation_error = 1/specimen_thickness
+
+    # Create a pyxem.StructureLibrary from the phase descriptions using a
+    # stereographic projection.
+    structure_library_generator = StructureLibraryGenerator(phase_descriptions)
+    structure_library = structure_library_generator.get_orientations_from_stereographic_triangle(
+            inplane_rotations, rotation_list_resolution)
+
+    # Set up the diffraction generator from the given parameters
+    gen = pxm.DiffractionGenerator(beam_energy_keV, max_excitation_error=max_excitation_error)
+    library_generator = DiffractionLibraryGenerator(gen)
+    reciprocal_radius = reciprocal_angstrom_per_pixel*(half_pattern_size - 1)
+
+    # Finally, actually create the DiffractionLibrary. The library is created
+    # without the direct beam since it does not contribute to matching.
+    diffraction_library = library_generator.get_diffraction_library(
+        structure_library,
+        calibration=reciprocal_angstrom_per_pixel,
+        reciprocal_radius=reciprocal_radius,
+        half_shape=(half_pattern_size, half_pattern_size),
+        with_direct_beam=False)
+
+    return diffraction_library, structure_library
+
 def update_rotation_list(_ = None):
     reciprocal_angstrom_per_pixel = slider_scale.val
     simulated_gaussian_sigma = slider_sigma.val
@@ -558,19 +615,12 @@ def update_rotation_list(_ = None):
     reciprocal_radius = reciprocal_angstrom_per_pixel*(half_pattern_size - 1)
     resolution = np.deg2rad(1)
 
-    structure_library_generator = StructureLibraryGenerator([
-        (phase_name, structure, structure_info['system'])])
-    structure_library = structure_library_generator.get_orientations_from_stereographic_triangle([[0]], resolution)
+    phase_descriptions = [(phase_name, structure, structure_info['system'])]
+    inplane_rotations = [[0]]
 
-    gen = pxm.DiffractionGenerator(beam_energy, max_excitation_error=max_excitation_error)
-    library_generator = pxm.DiffractionLibraryGenerator(gen)
-
-    diffraction_library = library_generator.get_diffraction_library(
-            structure_library,
-            calibration=reciprocal_angstrom_per_pixel,
-            reciprocal_radius=reciprocal_radius,
-            half_shape=(half_pattern_size, half_pattern_size),
-            with_direct_beam=False)
+    diffraction_library, structure_library = create_diffraction_library(
+            specimen_thickness, beam_energy, reciprocal_angstrom_per_pixel, resolution,
+            phase_descriptions, inplane_rotations, target_pattern_dimension_pixels)
 
     global current_rotation_list
     current_rotation_list = structure_library.orientations[0]
